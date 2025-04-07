@@ -5,33 +5,96 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
-
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Validator;
+use Exception;
 class AppointmentController extends Controller
 {
-
+    private const ERROR_CODES = [
+        'VALIDATION_FAILED' => 'validation_failed',
+        'SCHEDULE_NOT_FOUND' => 'schedule_not_found',
+        'SLOT_ALREADY_BOOKED' => 'slot_already_booked',
+        'PATIENT_NOT_FOUND' => 'patient_not_found',
+        'INTERNAL_ERROR' => 'internal_error',
+    ];
     public function bookAppointment(Request $request)
     {
-        $request->validate([
-            'schedule_id' => 'required|exists:schedules,id',
-            'patient_id' => 'required|integer'
 
-        ]);
+        try {
+            $validated = $request->validate([
+                'schedule_id' => 'required|integer|min:1',
+                'patient_id' => 'required|integer|min:1'
+            ]);
 
-        $schedule = Schedule::find($request->schedule_id);
+            $schedule = Schedule::find($validated['schedule_id']);
 
-        if (!$schedule->is_available) {
-            return response()->json(['message' => 'This slot is already booked'], 400);
+            if (!$schedule) {
+                return response()->json([
+                    'errors' => [
+                        [
+                            'code' => self::ERROR_CODES['SCHEDULE_NOT_FOUND'],
+                            'message' => 'Schedule not found'
+                        ]
+                    ],
+                    'data' => null
+                ], 404);
+            }
+
+            if (!$schedule->is_available) {
+                return response()->json([
+                    'errors' => [
+                        [
+                            'code' => self::ERROR_CODES['SLOT_ALREADY_BOOKED'],
+                            'message' => 'This time slot is already booked'
+                        ]
+                    ],
+                    'data' => null
+                ], 409);
+            }
+
+
+            $appointment = Appointment::create([
+                'schedule_id' => $validated['schedule_id'],
+                'patient_id' => $validated['patient_id']
+            ]);
+
+            $schedule->update(['is_available' => false]);
+
+
+            return response()->json([
+                'message' => 'Appointment booked successfully',
+                'data' => $appointment
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'code' => self::ERROR_CODES['VALIDATION_FAILED'],
+                        'message' => 'Validation failed',
+                        'meta' => $e->errors()
+                    ]
+                ],
+                'data' => null
+            ], 422);
+        } catch (Exception $e) {
+
+            return response()->json([
+                'errors' => [
+                    [
+                        'code' => self::ERROR_CODES['INTERNAL_ERROR'],
+                        'message' => 'Failed to book appointment',
+                        'meta' => ['details' => $e->getMessage()]
+                    ]
+                ],
+                'data' => null
+            ], 500);
         }
-
-        $appointment = Appointment::create([
-            'schedule_id' => $request->schedule_id,
-            'patient_id' => $request->patient_id
-        ]);
-
-        $schedule->update(['is_available' => false]);
-
-        return response()->json($appointment, 201);
     }
+
+
+
     /**
      * Display a listing of the resource.
      */
