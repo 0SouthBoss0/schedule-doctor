@@ -6,8 +6,6 @@ use App\Models\Appointment;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Validator;
 use Exception;
 class AppointmentController extends Controller
 {
