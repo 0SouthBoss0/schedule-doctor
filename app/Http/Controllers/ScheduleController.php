@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Schedule;
 use App\Models\Doctor;
-use Illuminate\Validation\ValidationException;
+use App\Models\Schedule;
 use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ScheduleController extends Controller
 {
@@ -29,21 +29,21 @@ class ScheduleController extends Controller
 
             $doctor = Doctor::find($validated['doctor_id']);
 
-            if (!$doctor) {
+            if (! $doctor) {
                 return response()->json([
                     'errors' => [[
                         'code' => self::ERROR_CODES['DOCTOR_NOT_FOUND'],
-                        'message' => 'Doctor not found'
+                        'message' => 'Doctor not found',
                     ]],
-                    'data' => null
+                    'data' => null,
                 ], 404);
             }
 
             $conflictingSlot = Schedule::where('doctor_id', $validated['doctor_id'])
-                ->where(function($query) use ($validated) {
+                ->where(function ($query) use ($validated) {
                     $query->whereBetween('start_time', [$validated['start_time'], $validated['end_time']])
                         ->orWhereBetween('end_time', [$validated['start_time'], $validated['end_time']])
-                        ->orWhere(function($q) use ($validated) {
+                        ->orWhere(function ($q) use ($validated) {
                             $q->where('start_time', '<=', $validated['start_time'])
                                 ->where('end_time', '>=', $validated['end_time']);
                         });
@@ -54,9 +54,9 @@ class ScheduleController extends Controller
                 return response()->json([
                     'errors' => [[
                         'code' => self::ERROR_CODES['TIME_CONFLICT'],
-                        'message' => 'Time slot conflicts with existing schedule'
+                        'message' => 'Time slot conflicts with existing schedule',
                     ]],
-                    'data' => null
+                    'data' => null,
                 ], 409);
             }
 
@@ -64,13 +64,12 @@ class ScheduleController extends Controller
                 'doctor_id' => $validated['doctor_id'],
                 'start_time' => $validated['start_time'],
                 'end_time' => $validated['end_time'],
-                'is_available' => true
+                'is_available' => true,
             ]);
-
 
             return response()->json([
                 'errors' => [],
-                'data' => $schedule
+                'data' => $schedule,
             ], 201);
 
         } catch (ValidationException $e) {
@@ -78,18 +77,18 @@ class ScheduleController extends Controller
                 'errors' => [[
                     'code' => self::ERROR_CODES['VALIDATION_FAILED'],
                     'message' => 'Validation failed',
-                    'meta' => $e->errors()
+                    'meta' => $e->errors(),
                 ]],
-                'data' => null
+                'data' => null,
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'errors' => [[
                     'code' => self::ERROR_CODES['INTERNAL_ERROR'],
                     'message' => 'Failed to add time slot',
-                    'meta' => ['details' => $e->getMessage()]
+                    'meta' => ['details' => $e->getMessage()],
                 ]],
-                'data' => null
+                'data' => null,
             ], 500);
         }
     }
@@ -97,13 +96,13 @@ class ScheduleController extends Controller
     public function getFreeSlots($doctorId)
     {
         try {
-            if (!Doctor::find($doctorId)) {
+            if (! Doctor::find($doctorId)) {
                 return response()->json([
                     'errors' => [[
                         'code' => self::ERROR_CODES['DOCTOR_NOT_FOUND'],
-                        'message' => 'Doctor not found'
+                        'message' => 'Doctor not found',
                     ]],
-                    'data' => null
+                    'data' => null,
                 ], 404);
             }
 
@@ -111,17 +110,15 @@ class ScheduleController extends Controller
                 ->where('is_available', true)
                 ->get();
 
-
             if ($freeSlots->isEmpty()) {
                 return response()->json([
                     'errors' => [],
-                    'data' => null
+                    'data' => null,
                 ], 201);
-            }
-            else {
+            } else {
                 return response()->json([
                     'errors' => [],
-                    'data' => $freeSlots->toArray()
+                    'data' => $freeSlots->toArray(),
                 ]);
             }
 
@@ -130,14 +127,12 @@ class ScheduleController extends Controller
                 'errors' => [[
                     'code' => self::ERROR_CODES['INTERNAL_ERROR'],
                     'message' => 'Failed to retrieve free slots',
-                    'meta' => ['details' => $e->getMessage()]
+                    'meta' => ['details' => $e->getMessage()],
                 ]],
-                'data' => null
+                'data' => null,
             ], 500);
         }
     }
-
-
 
     /**
      * Display a listing of the resource.
