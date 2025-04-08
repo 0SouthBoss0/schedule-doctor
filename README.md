@@ -17,6 +17,7 @@ RESTful API для управления записью на приемы с во
 ```bash
 git clone https://github.com/nadezhkinaa/schedule-doctor.git
 cd schedule-doctor
+git config core.hooksPath .githooks/
 composer install
 cp .env.example .env
 php artisan key:generate
